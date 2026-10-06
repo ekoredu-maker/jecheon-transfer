@@ -30,16 +30,17 @@
     if(/복직/.test(s))return '복직';
     if(/복귀/.test(s))return '복귀';
     if(/관내/.test(s))return '관내전보';
-    if(/타시군/.test(s))return '타시군전입';
-    if(/타시도|시도간/.test(s))return '타시도전입';
+    if(/타시도|타시·도|시도간|시·도간|교류입|시도교류/.test(s))return '타시도전입';
+    if(/타시군|타시·군|시군간|시·군간|청간/.test(s))return '타시군전입';
     if(/비정기/.test(s))return '비정기전입';
     if(/신규/.test(s))return '신규임용';
+    if(/관내|희망전보|학교만기|급지만기|지역만기|구역만기|만기/.test(s))return '관내전보';
     return text(v);
   }
   function outType(v){
     var s=norm323(v);
     if(/타시군/.test(s))return '타시군전출';
-    if(/타시도|시도간|교류/.test(s))return '타시도전출';
+    if(/타시도|시도간|시도교류|교류전출/.test(s))return '타시도전출';
     if(/명예퇴직|명퇴/.test(s))return '명예퇴직';
     if(/정년퇴직|정퇴/.test(s))return '정년퇴직';
     if(/면직/.test(s))return '면직';
@@ -47,6 +48,7 @@
     if(/파견/.test(s))return '파견';
     if(/승진|전직/.test(s))return '승진·전직';
     if(/국립/.test(s))return '국립전출';
+    if(/관외전출|전출/.test(s))return '기타';
     if(/기타/.test(s))return '기타';
     return text(v);
   }
@@ -76,7 +78,7 @@
       return o;
     });
     var out=baseMapOut(src);
-    out.forEach(function(o){o.전출유형=outType(o.구분||o.처리||o.사유||o.전출유형);});
+    out.forEach(function(o){o.전출유형=outType([o.전출유형,o.구분,o.처리,o.사유].filter(Boolean).join(' '));});
     return out;
   };
 
@@ -127,7 +129,7 @@
       var oa=s.out||[];
       if(!meta.loaded)errors.push('관외전출명부를 올리거나 [관외전출 없음]을 선택하세요.');
       oa.forEach(function(o,i){
-        var row=o.sourceRowNo||i+2, typ=outType(o.전출유형||o.처리||o.구분||o.사유);
+        var row=o.sourceRowNo||i+2, typ=outType([o.전출유형,o.구분,o.처리,o.사유].filter(Boolean).join(' '));
         if(!text(o.성명))errors.push(row+'행 성명 누락');
         if(!text(o.생년월일))warnings.push((o.성명||row+'행')+' 생년월일 누락');
         if(!text(o.교원구분))warnings.push((o.성명||row+'행')+' 교원구분 누락');
