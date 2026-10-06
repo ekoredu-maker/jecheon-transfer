@@ -53,6 +53,18 @@
     return text(v);
   }
 
+  function masterMap323(){
+    var m={};
+    (Store.state.schools||[]).forEach(function(x){
+      var k=norm323(canon(x.학교명));
+      if(k)m[k]=1;
+    });
+    return m;
+  }
+  function personKey323(t){
+    return [norm323(t&&t.성명),norm323(t&&t.생년월일),norm323(t&&t.교원구분)].join('|');
+  }
+
   var baseMapIntra=mapIntra;
   mapIntra=function(rows){
     var src=(rows||[]).map(function(r){
@@ -96,8 +108,7 @@
       });
     }
     if(target==='quota'){
-      var q=s.quota||[], master={};
-      (s.schools||[]).forEach(function(x){master[norm323(canon(x.학교명))]=1;});
+      var q=s.quota||[], master=masterMap323();
       if(!q.length)errors.push('정원·현원 자료가 없습니다.');
       var qseen={};
       q.forEach(function(x){
@@ -110,15 +121,25 @@
       if(!hasHeader('quota','2.28현원'))warnings.push('표준서식의 [2.28현원] 열 사용 권장');
     }
     if(target==='intra'){
-      var ia=s.intra||[];
+      var ia=s.intra||[], imaster=masterMap323(), pseen={};
       if(!ia.length)errors.push('관내전보·전입명부가 없습니다.');
       ia.forEach(function(t,i){
         var row=t.sourceRowNo||i+2, typ=inType(t.배치유형||t.발령사유);
         if(!text(t.성명))errors.push(row+'행 성명 누락');
         if(!text(t.생년월일))errors.push((t.성명||row+'행')+' 생년월일 누락');
         if(!text(t.교원구분))errors.push((t.성명||row+'행')+' 교원구분 누락');
+        if(text(t.성명)&&text(t.생년월일)&&text(t.교원구분)){
+          var pk=personKey323(t);
+          if(pseen[pk])errors.push('내신명부 교원 식별값 중복: '+t.성명+' / '+t.생년월일+' / '+t.교원구분);
+          pseen[pk]=1;
+        }
         if(IN_TYPES.indexOf(typ)<0)errors.push((t.성명||row+'행')+' 배치유형 확인 필요: '+(typ||'미입력'));
         if(['복직','복귀','관내전보'].indexOf(typ)>=0&&!text(t.현임교))errors.push((t.성명||row+'행')+' 현임교 누락');
+        if(['복직','복귀','관내전보'].indexOf(typ)>=0&&text(t.현임교)&&Object.keys(imaster).length&&!imaster[norm323(canon(t.현임교))])errors.push((t.성명||row+'행')+' 현임교가 학교기본정보에 없음: '+t.현임교);
+        [['1지망',t.지망1],['2지망',t.지망2],['복직대상학교',t.복직대상학교]].forEach(function(pair){
+          if(text(pair[1])&&Object.keys(imaster).length&&!imaster[norm323(canon(pair[1]))])errors.push((t.성명||row+'행')+' '+pair[0]+'이 학교기본정보에 없음: '+pair[1]);
+        });
+        if(text(t.가족교원근무교)&&Object.keys(imaster).length&&!imaster[norm323(canon(t.가족교원근무교))])warnings.push(t.성명+': 가족교원근무교가 학교기본정보에 없음: '+t.가족교원근무교);
         if(['관내전보','타시군전입','타시도전입','비정기전입'].indexOf(typ)>=0&&!text(t.지망1))warnings.push(t.성명+': 1지망 미입력');
         if(Number(t.전보순위)!==i+1)warnings.push(t.성명+': 명부 위→아래 순위와 내부순위 불일치');
       });
@@ -126,7 +147,7 @@
     }
     if(target==='out'){
       if(cfg().noOut323===true)return {ready:true,errors:[],warnings:[],loaded:true,noOut:true};
-      var oa=s.out||[];
+      var oa=s.out||[], omaster=masterMap323(), oseen={};
       if(!meta.loaded&&!oa.length)errors.push('관외전출명부를 올리거나 [관외전출 없음]을 선택하세요.');
       oa.forEach(function(o,i){
         var row=o.sourceRowNo||i+2, typ=outType([o.전출유형,o.구분,o.처리,o.사유].filter(Boolean).join(' '));
@@ -134,6 +155,12 @@
         if(!text(o.생년월일))warnings.push((o.성명||row+'행')+' 생년월일 누락');
         if(!text(o.교원구분))warnings.push((o.성명||row+'행')+' 교원구분 누락');
         if(!text(o.현임교))errors.push((o.성명||row+'행')+' 현임교 누락');
+        if(text(o.현임교)&&Object.keys(omaster).length&&!omaster[norm323(canon(o.현임교))])errors.push((o.성명||row+'행')+' 현임교가 학교기본정보에 없음: '+o.현임교);
+        var ok=[norm323(o.성명),norm323(o.생년월일),norm323(o.교원구분),norm323(canon(o.현임교))].join('|');
+        if(ok.replace(/\|/g,'')){
+          if(oseen[ok])errors.push('관외전출명부 중복: '+(o.성명||row+'행')+' / '+(o.현임교||''));
+          oseen[ok]=1;
+        }
         if(OUT_TYPES.indexOf(typ)<0)errors.push((o.성명||row+'행')+' 전출유형 확인 필요: '+(typ||'미입력'));
       });
       if(meta.loaded&&!hasHeader('out','전출유형'))warnings.push('호환서식 읽기: 다음부터 [전출유형] 열 사용 권장');
