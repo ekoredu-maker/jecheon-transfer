@@ -118,7 +118,7 @@
         if(!text(t.생년월일))errors.push((t.성명||row+'행')+' 생년월일 누락');
         if(!text(t.교원구분))errors.push((t.성명||row+'행')+' 교원구분 누락');
         if(IN_TYPES.indexOf(typ)<0)errors.push((t.성명||row+'행')+' 배치유형 확인 필요: '+(typ||'미입력'));
-        if(typ!=='신규임용'&&!text(t.현임교))errors.push((t.성명||row+'행')+' 현임교 누락');
+        if(['복직','복귀','관내전보'].indexOf(typ)>=0&&!text(t.현임교))errors.push((t.성명||row+'행')+' 현임교 누락');
         if(['관내전보','타시군전입','타시도전입','비정기전입'].indexOf(typ)>=0&&!text(t.지망1))warnings.push(t.성명+': 1지망 미입력');
         if(Number(t.전보순위)!==i+1)warnings.push(t.성명+': 명부 위→아래 순위와 내부순위 불일치');
       });
@@ -127,7 +127,7 @@
     if(target==='out'){
       if(cfg().noOut323===true)return {ready:true,errors:[],warnings:[],loaded:true,noOut:true};
       var oa=s.out||[];
-      if(!meta.loaded)errors.push('관외전출명부를 올리거나 [관외전출 없음]을 선택하세요.');
+      if(!meta.loaded&&!oa.length)errors.push('관외전출명부를 올리거나 [관외전출 없음]을 선택하세요.');
       oa.forEach(function(o,i){
         var row=o.sourceRowNo||i+2, typ=outType([o.전출유형,o.구분,o.처리,o.사유].filter(Boolean).join(' '));
         if(!text(o.성명))errors.push(row+'행 성명 누락');
@@ -138,7 +138,7 @@
       });
       if(meta.loaded&&!hasHeader('out','전출유형'))warnings.push('호환서식 읽기: 다음부터 [전출유형] 열 사용 권장');
     }
-    return {ready:errors.length===0,errors:Array.from(new Set(errors)),warnings:Array.from(new Set(warnings)),loaded:!!meta.loaded};
+    return {ready:errors.length===0,errors:Array.from(new Set(errors)),warnings:Array.from(new Set(warnings)),loaded:!!meta.loaded||((target==='out')&&(Store.state.out||[]).length>0)};
   }
   window.inputAudit323=audit;
 
