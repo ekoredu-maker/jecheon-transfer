@@ -1,0 +1,26 @@
+# Runtime / personal data
+/data/
+/backup/
+/backups/
+/output/
+*.json
+*.log
+
+# Personal or real personnel spreadsheets
+*.xlsx
+*.xls
+*.csv
+!app/templates/*.xlsx
+
+# Python cache / local runtime
+__pycache__/
+*.py[cod]
+/python/
+.venv/
+venv/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
